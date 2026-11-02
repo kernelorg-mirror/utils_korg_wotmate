@@ -99,7 +99,7 @@ def keyring_load_sig_data(
     uidrowid = None
     uidsigs: Dict[str, Any] = dict()
     revsigs: Set[str] = set()
-    is_revuid = False
+    skip_uid = False
     sigcount = 0
     ignored_sigs = 0
 
@@ -115,26 +115,21 @@ def keyring_load_sig_data(
         if fields[0] == 'pub':
             uidrowid = None
             pubkeyid = None
-            is_revuid = False
+            skip_uid = False
             if fields[4] in pub_keyid_rowid_map:
                 pubkeyid = fields[4]
 
         elif fields[0] == 'uid':
             if not pubkeyid:
                 continue
-            # is this uid expired/revoked or is otherwise invalid?
-            if fields[1] in ('e', 'r', 'i'):
-                is_revuid = True
-                continue
-            is_revuid = False
-            try:
-                uidrowid = uid_hash_rowid_map[(pubkeyid, fields[7])]
-            except IndexError:
-                # unknown uid somehow, ignore it
-                continue
+            # The first pass left out expired, revoked and invalid UIDs, and
+            # never saw UIDs added to the keyring since then. Skip their sigs,
+            # so they are not credited to the UID before them instead.
+            uidrowid = uid_hash_rowid_map.get((pubkeyid, fields[7]))
+            skip_uid = uidrowid is None or fields[1] in ('e', 'r', 'i')
 
         elif fields[0] in ('sig', 'rev'):
-            if not pubkeyid or is_revuid:
+            if not pubkeyid or skip_uid:
                 ignored_sigs += 1
                 continue
             # some gpg versions, when using --fast-list-mode, don't show UID
