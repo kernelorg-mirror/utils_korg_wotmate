@@ -240,11 +240,13 @@ def make_graph_node(c: sqlite3.Cursor, p_rowid: int, show_trust: bool = False) -
 
 def draw_key_paths(c: sqlite3.Cursor, paths: List[List[int]], graph: pd.Graph, show_trust: bool):
     seenactors: Dict[int, pd.Node] = dict()
+    # Paths often share hops, and graphviz draws every edge it is given
+    seenedges: Set[Tuple[int, int]] = set()
     # make a subgraph for toplevel nodes
     tl_subgraph = pd.Subgraph('cluster_toplevel')
     tl_subgraph.set('color', 'white')
     for path in paths:
-        signer: Optional[pd.Node] = None
+        signer: Optional[int] = None
         for actor in path:
             if actor not in seenactors:
                 anode = make_graph_node(c, actor, show_trust)
@@ -253,13 +255,12 @@ def draw_key_paths(c: sqlite3.Cursor, paths: List[List[int]], graph: pd.Graph, s
                     tl_subgraph.add_node(anode)
                 else:
                     graph.add_node(anode)
-            else:
-                anode = seenactors[actor]
 
-            if signer is not None:
-                graph.add_edge(pd.Edge(signer.get_name(), anode.get_name()))
+            if signer is not None and (signer, actor) not in seenedges:
+                seenedges.add((signer, actor))
+                graph.add_edge(pd.Edge(seenactors[signer].get_name(), seenactors[actor].get_name()))
 
-            signer = anode
+            signer = actor
 
     graph.add_subgraph(tl_subgraph)
 

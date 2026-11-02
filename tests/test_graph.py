@@ -32,8 +32,10 @@ def test_draw_key_paths(keyring: Keyring) -> None:
     paths = [[pubrow(c, k) for k in path] for path in ([me, alice, bob], [me, alice, carol])]
     wotmate.draw_key_paths(c, paths, graph, show_trust=False)
 
-    edges = {(e.get_source(), e.get_destination()) for e in graph.get_edges()}
-    assert edges == {(m, a), (a, b), (a, cr)}
+    # A list, not a set: graphviz draws every edge it is given, so a hop
+    # shared by two paths must still appear only once
+    edges = sorted((e.get_source(), e.get_destination()) for e in graph.get_edges())
+    assert edges == sorted([(m, a), (a, b), (a, cr)])
     # The start of each path is pinned to the top in its own cluster
     (toplevel,) = graph.get_subgraphs()
     assert [n.get_name() for n in toplevel.get_nodes()] == [m]
