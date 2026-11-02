@@ -188,7 +188,14 @@ if __name__ == '__main__':
                 if trust_changed:
                     logger.debug('Trust changes detected for %s', kid)
 
-        logger.debug(f'{kid} {key_changed=} {trust_changed=} {key_already_exists=} {len(key_paths)=}')
+        logger.debug(
+            '%s key_changed=%s trust_changed=%s key_already_exists=%s paths=%s',
+            kid,
+            key_changed,
+            trust_changed,
+            key_already_exists,
+            len(key_paths),
+        )
 
         if not (key_changed or trust_changed):
             logger.debug('No changes detected for %s', kid)
@@ -204,7 +211,7 @@ if __name__ == '__main__':
                     logger.info('Skipping %s due to bad linter results', kid)
                     continue
                 else:
-                    logger.debug(f'{kid}: Ignore bad linter results')
+                    logger.debug('%s: Ignore bad linter results', kid)
 
             with open(keyout, 'wb') as fout:
                 fout.write(keyexport)

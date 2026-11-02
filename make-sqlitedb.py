@@ -72,7 +72,7 @@ def keyring_load_pub_uid(
             )
             c.execute('INSERT INTO uid VALUES (?,?,?,?,?,?)', data)
             if c.lastrowid is None:
-                logger.error('Failed to insert uid %s' % fields[9])
+                logger.error('Failed to insert uid %s', fields[9])
                 continue
             uid_hash_rowid_map[(current_pubkey, fields[7])] = c.lastrowid
 
@@ -81,8 +81,8 @@ def keyring_load_pub_uid(
 
             is_primary = 0
 
-    logger.info('Loaded %s pubkeys (%s ignored)' % (len(pub_keyid_rowid_map), ignored_keys))
-    logger.info('Loaded %s uids (%s ignored)' % (len(uid_hash_rowid_map), ignored_uids))
+    logger.info('Loaded %s pubkeys (%s ignored)', len(pub_keyid_rowid_map), ignored_keys)
+    logger.info('Loaded %s uids (%s ignored)', len(uid_hash_rowid_map), ignored_uids)
     return pub_keyid_rowid_map, uid_hash_rowid_map
 
 
@@ -173,7 +173,7 @@ def keyring_load_sig_data(
                 continue
 
             if not use_weak and fields[15] in {'1', '2'}:
-                logger.debug('Ignoring weak sig with algo=%s' % fields[15])
+                logger.debug('Ignoring weak sig with algo=%s', fields[15])
                 ignored_sigs += 1
                 continue
 
@@ -185,7 +185,7 @@ def keyring_load_sig_data(
         c.executemany(sigquery, uidsigs.values())
         sigcount += len(uidsigs)
 
-    logger.info('Loaded %s valid sigs (%s ignored)' % (sigcount, ignored_sigs))
+    logger.info('Loaded %s valid sigs (%s ignored)', sigcount, ignored_sigs)
 
 
 if __name__ == '__main__':
@@ -239,4 +239,4 @@ if __name__ == '__main__':
 
     dbconn.commit()
     dbconn.close()
-    logger.info('Wrote %s' % cmdargs.dbfile)
+    logger.info('Wrote %s', cmdargs.dbfile)

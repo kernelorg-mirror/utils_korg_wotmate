@@ -62,6 +62,7 @@ line-length = 120
 [tool.ruff.lint]
 extend-select = [
     "ARG",
+    "G", # logging format: let logging do the formatting, and only when needed
     "I",
 ]
 ignore = [

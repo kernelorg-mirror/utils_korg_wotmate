@@ -68,4 +68,4 @@ if __name__ == '__main__':
     chunks = cmdargs.out.split('.')
     outformat = chunks[-1]
     graph.write(cmdargs.out, format=outformat)
-    logger.info('Wrote %s' % cmdargs.out)
+    logger.info('Wrote %s', cmdargs.out)

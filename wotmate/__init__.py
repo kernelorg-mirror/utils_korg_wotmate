@@ -70,7 +70,7 @@ def gpg_run_command(args: list[str], with_colons: bool = True, stdin: bytes | No
     if GNUPGHOME is not None:
         env = {'GNUPGHOME': GNUPGHOME}
 
-    logger.debug('Running %s...' % ' '.join(cmdargs))
+    logger.debug('Running %s...', ' '.join(cmdargs))
 
     sp = subprocess.Popen(cmdargs, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     (output, error) = sp.communicate(input=stdin)
@@ -119,7 +119,7 @@ def gpg_get_fields(bline: bytes) -> list[str]:
 
 def init_sqlite_db(c: sqlite3.Cursor) -> None:
     # Create primary keys table
-    logger.info('Initializing new sqlite3 db with metadata version %s' % DB_VERSION)
+    logger.info('Initializing new sqlite3 db with metadata version %s', DB_VERSION)
     c.execute("""CREATE TABLE metadata (
                   version INTEGER
                  )""")
@@ -263,9 +263,9 @@ def get_pubrow_id(c: sqlite3.Cursor, whatnot: str) -> int | None:
         if len(rows) == 1:
             return rows[0][0]
         elif len(rows) > 1:
-            logger.critical('More than one key matched %s, use 16-character keyid' % whatnot)
+            logger.critical('More than one key matched %s, use 16-character keyid', whatnot)
         else:
-            logger.critical('No keyids in the database matching %s' % whatnot)
+            logger.critical('No keyids in the database matching %s', whatnot)
         return None
     except ValueError:
         # not hexadecimal, so not keyid
@@ -277,9 +277,9 @@ def get_pubrow_id(c: sqlite3.Cursor, whatnot: str) -> int | None:
     if len(rows) == 1:
         return rows[0][0]
     elif len(rows) > 1:
-        logger.critical('More than one result matching "%s", be more specific' % whatnot)
+        logger.critical('More than one result matching "%s", be more specific', whatnot)
     else:
-        logger.critical('Nothing found matching "%s"' % whatnot)
+        logger.critical('Nothing found matching "%s"', whatnot)
 
     return None
 
@@ -295,7 +295,7 @@ def get_key_paths(
     # Keys in avoid are never used as hops, only as the start or the end
 
     def gen_uniq_paths(t_p_rowid: int, b_p_rowid: int, maxdepth: int):
-        logger.debug(f'search for {str(b_p_rowid) + " " + get_uiddata_by_pubrow(c, b_p_rowid)}')
+        logger.debug('search for %s %s', b_p_rowid, get_uiddata_by_pubrow(c, b_p_rowid))
 
         # prioq tracks the pairs (depth, path) that need further inspection
         prioq: list[tuple[int, list[int]]] = [(0, [t_p_rowid])]
@@ -311,7 +311,7 @@ def get_key_paths(
                 continue
 
             if path[-1] == b_p_rowid:
-                logger.debug(f'found: {[str(p) + " " + get_uiddata_by_pubrow(c, p) for p in path]} @{depth=}')
+                logger.debug('found: %s @depth=%s', [f'{p} {get_uiddata_by_pubrow(c, p)}' for p in path], depth)
                 yield path
 
                 # if we found a path of length 1, this is good enough
