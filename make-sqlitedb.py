@@ -5,23 +5,23 @@ __author__ = 'Konstantin Ryabitsev <konstantin@linuxfoundation.org>'
 
 import os
 import sqlite3
-from typing import Any, Dict, Set, Tuple
+from typing import Any
 
 import wotmate
 
 
 def keyring_load_pub_uid(
     c: sqlite3.Cursor, use_weak: bool
-) -> Tuple[Dict[str, Tuple[int, int]], Dict[Tuple[str, str], int]]:
+) -> tuple[dict[str, tuple[int, int]], dict[tuple[str, str], int]]:
     logger.info('Loading all valid pubkeys')
-    uid_hash_rowid_map: Dict[Tuple[str, str], int] = {}
-    pub_keyid_rowid_map: Dict[str, Tuple[int, int]] = {}
+    uid_hash_rowid_map: dict[tuple[str, str], int] = {}
+    pub_keyid_rowid_map: dict[str, tuple[int, int]] = {}
     current_pubkey = None
     current_pubrowid = None
     is_primary = 1
     ignored_keys = 0
     ignored_uids = 0
-    data: Tuple[Any, ...]
+    data: tuple[Any, ...]
     for line in wotmate.gpg_get_lines(['--list-public-keys'], [b'pub:', b'uid']):
         fields = wotmate.gpg_get_fields(line)
         if fields[0] == 'pub':
@@ -88,8 +88,8 @@ def keyring_load_pub_uid(
 
 def keyring_load_sig_data(
     c: sqlite3.Cursor,
-    pub_keyid_rowid_map: Dict[str, Tuple[int, int]],
-    uid_hash_rowid_map: Dict[Tuple[str, str], int],
+    pub_keyid_rowid_map: dict[str, tuple[int, int]],
+    uid_hash_rowid_map: dict[tuple[str, str], int],
     use_weak: bool = False,
 ) -> None:
     logger.info('Loading signature data')
@@ -97,8 +97,8 @@ def keyring_load_sig_data(
     # used to track the current pubkey/uid
     pubkeyid = None
     uidrowid = None
-    uidsigs: Dict[str, Any] = {}
-    revsigs: Set[str] = set()
+    uidsigs: dict[str, Any] = {}
+    revsigs: set[str] = set()
     skip_uid = False
     sigcount = 0
     ignored_sigs = 0

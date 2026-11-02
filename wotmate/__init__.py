@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright © 2018-2024 by The Linux Foundation and contributors
+from __future__ import annotations
+
 __author__ = 'Konstantin Ryabitsev <konstantin@linuxfoundation.org>'
 
 import itertools
@@ -7,12 +9,12 @@ import logging
 import sqlite3
 import subprocess
 import sys
+from collections.abc import Collection, Sequence
 from datetime import datetime
-from typing import Collection, Dict, List, Optional, Sequence, Set, Tuple
 
 import pydotplus.graphviz as pd
 
-ALGOS: Dict[int, str] = {
+ALGOS: dict[int, str] = {
     1: 'RSA',
     17: 'DSA',
     18: 'ECDH',
@@ -27,11 +29,11 @@ GNUPGHOME = None
 logger = logging.getLogger(__name__)
 
 # convenience caching to avoid redundant look-ups
-_all_signed_by_cache: Dict[int, List[int]] = {}
-_all_pub_uiddata_cache: Dict[int, Tuple[str, str]] = {}
+_all_signed_by_cache: dict[int, list[int]] = {}
+_all_pub_uiddata_cache: dict[int, tuple[str, str]] = {}
 
 
-def get_pub_uid_by_pubrow(c: sqlite3.Cursor, p_rowid: int) -> Tuple[str, str]:
+def get_pub_uid_by_pubrow(c: sqlite3.Cursor, p_rowid: int) -> tuple[str, str]:
     if p_rowid not in _all_pub_uiddata_cache:
         c.execute(
             'SELECT pub.keyid, uid.uiddata FROM uid JOIN pub ON uid.pubrowid = pub.rowid WHERE pubrowid=?', (p_rowid,)
@@ -58,7 +60,7 @@ def get_logger(quiet: bool = False, verbose: bool = False) -> logging.Logger:
     return logger
 
 
-def gpg_run_command(args: List[str], with_colons: bool = True, stdin: Optional[bytes] = None) -> bytes:
+def gpg_run_command(args: list[str], with_colons: bool = True, stdin: bytes | None = None) -> bytes:
     cmdargs = [GPGBIN, '--batch', '--display-charset', 'utf-8']
     if with_colons:
         cmdargs += ['--with-colons']
@@ -89,9 +91,9 @@ def lint(keydata: bytes) -> bool:
     return sp.returncode == 0
 
 
-def gpg_get_lines(args: List[str], matchonly: Sequence[bytes] = ()) -> List[bytes]:
+def gpg_get_lines(args: list[str], matchonly: Sequence[bytes] = ()) -> list[bytes]:
     output = gpg_run_command(args)
-    lines: List[bytes] = []
+    lines: list[bytes] = []
     logger.debug('Processing the output...')
     for line in output.split(b'\n'):
         if not len(line.strip()) or line.startswith(b'#'):
@@ -102,7 +104,7 @@ def gpg_get_lines(args: List[str], matchonly: Sequence[bytes] = ()) -> List[byte
     return lines
 
 
-def gpg_get_fields(bline: bytes) -> List[str]:
+def gpg_get_fields(bline: bytes) -> list[str]:
     line = bline.decode('utf8', 'ignore')
     # gpg uses \x3a to indicate an encoded colon, so explode and de-encode
     fields = [rawchunk.replace('\\x3a', ':') for rawchunk in line.split(':')]
@@ -152,7 +154,7 @@ def init_sqlite_db(c: sqlite3.Cursor) -> None:
                  ) WITHOUT ROWID""")
 
 
-def get_all_signed_by(c: sqlite3.Cursor, p_rowid: int) -> List[int]:
+def get_all_signed_by(c: sqlite3.Cursor, p_rowid: int) -> list[int]:
     if p_rowid not in _all_signed_by_cache:
         c.execute(
             """SELECT DISTINCT uid.pubrowid
@@ -165,7 +167,7 @@ def get_all_signed_by(c: sqlite3.Cursor, p_rowid: int) -> List[int]:
     return _all_signed_by_cache[p_rowid]
 
 
-def get_all_full_trust(c: sqlite3.Cursor) -> List[int]:
+def get_all_full_trust(c: sqlite3.Cursor) -> list[int]:
     c.execute("""SELECT pub.rowid
                    FROM pub
                   WHERE ownertrust IN ('u', 'f')
@@ -224,15 +226,15 @@ def make_graph_node(c: sqlite3.Cursor, p_rowid: int, show_trust: bool = False) -
     return anode
 
 
-def draw_key_paths(c: sqlite3.Cursor, paths: List[List[int]], graph: pd.Graph, show_trust: bool):
-    seenactors: Dict[int, pd.Node] = {}
+def draw_key_paths(c: sqlite3.Cursor, paths: list[list[int]], graph: pd.Graph, show_trust: bool):
+    seenactors: dict[int, pd.Node] = {}
     # Paths often share hops, and graphviz draws every edge it is given
-    seenedges: Set[Tuple[int, int]] = set()
+    seenedges: set[tuple[int, int]] = set()
     # make a subgraph for toplevel nodes
     tl_subgraph = pd.Subgraph('cluster_toplevel')
     tl_subgraph.set('color', 'white')
     for path in paths:
-        signer: Optional[int] = None
+        signer: int | None = None
         for actor in path:
             if actor not in seenactors:
                 anode = make_graph_node(c, actor, show_trust)
@@ -251,7 +253,7 @@ def draw_key_paths(c: sqlite3.Cursor, paths: List[List[int]], graph: pd.Graph, s
     graph.add_subgraph(tl_subgraph)
 
 
-def get_pubrow_id(c: sqlite3.Cursor, whatnot: str) -> Optional[int]:
+def get_pubrow_id(c: sqlite3.Cursor, whatnot: str) -> int | None:
     # first, attempt to treat it as key id
     try:
         int(whatnot, 16)
@@ -289,17 +291,17 @@ def get_key_paths(
     maxdepth: int = 5,
     maxpaths: int = 5,
     avoid: Collection[int] = (),
-) -> List[List[int]]:
+) -> list[list[int]]:
     # Keys in avoid are never used as hops, only as the start or the end
 
     def gen_uniq_paths(t_p_rowid: int, b_p_rowid: int, maxdepth: int):
         logger.debug(f'search for {str(b_p_rowid) + " " + get_uiddata_by_pubrow(c, b_p_rowid)}')
 
         # prioq tracks the pairs (depth, path) that need further inspection
-        prioq: List[Tuple[int, List[int]]] = [(0, [t_p_rowid])]
+        prioq: list[tuple[int, list[int]]] = [(0, [t_p_rowid])]
 
-        found: Set[int] = set()
-        used_keys: Set[int] = set(avoid) - {b_p_rowid}
+        found: set[int] = set()
+        used_keys: set[int] = set(avoid) - {b_p_rowid}
 
         while prioq:
             depth, path = prioq.pop(0)
@@ -347,7 +349,7 @@ def get_key_paths(
     return ret
 
 
-def get_u_key(c: sqlite3.Cursor) -> Optional[int]:
+def get_u_key(c: sqlite3.Cursor) -> int | None:
     c.execute("""SELECT rowid 
                    FROM pub
                   WHERE ownertrust = 'u' 
@@ -360,10 +362,10 @@ def get_u_key(c: sqlite3.Cursor) -> Optional[int]:
         return None
 
 
-def get_full_trust_paths(c: sqlite3.Cursor, b_p_rowid: int, maxdepth: int = 5) -> List[List[int]]:
+def get_full_trust_paths(c: sqlite3.Cursor, b_p_rowid: int, maxdepth: int = 5) -> list[list[int]]:
     """Find the shortest path from each fully-trusted key to b_p_rowid."""
     full_trust = get_all_full_trust(c)
-    paths: List[List[int]] = []
+    paths: list[list[int]] = []
     for t_p_rowid in full_trust:
         if t_p_rowid == b_p_rowid:
             continue

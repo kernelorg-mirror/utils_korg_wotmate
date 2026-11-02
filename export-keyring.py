@@ -8,7 +8,6 @@ import pathlib
 import sqlite3
 import sys
 from email.utils import parseaddr
-from typing import List, Set
 from urllib.parse import quote_plus
 
 import pydotplus.graphviz as pd
@@ -128,11 +127,11 @@ if __name__ == '__main__':
         os.mkdir(graphdir)
 
     kcount = wcount = 0
-    my_symlinks: Set[str] = set()
+    my_symlinks: set[str] = set()
     for to_rowid, kid, uiddata in c.fetchall():
         kcount += 1
         # First, export the key
-        args: List[str] = ['-a', '--export']
+        args: list[str] = ['-a', '--export']
         if cmdargs.use_weak_algos:
             args += ['--allow-weak-digest-algos', '--allow-weak-key-signatures']
         args += ['--export-options', cmdargs.key_export_options, kid]
