@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright © 2018-2024 by The Linux Foundation and contributors
 __author__ = 'Konstantin Ryabitsev <konstantin@linuxfoundation.org>'
 
-import sys
 import sqlite3
+import sys
+
+import pydotplus.graphviz as pd
 
 import wotmate
-import pydotplus.graphviz as pd
 
 
 def get_key_paths(c, b_p_rowid, maxdepth=5):

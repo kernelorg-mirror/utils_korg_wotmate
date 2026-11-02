@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright © 2018-2024 by The Linux Foundation and contributors
 __author__ = 'Konstantin Ryabitsev <konstantin@linuxfoundation.org>'
 
 import os
 import sqlite3
-import wotmate
+from typing import Any, Dict, Set, Tuple
 
-from typing import Tuple, Dict, Any, Set
+import wotmate
 
 
 def keyring_load_pub_uid(
@@ -184,7 +183,7 @@ def keyring_load_sig_data(
                 continue
 
             # do we have the key that signed it?
-            if sigkeyid in pub_keyid_rowid_map.keys():
+            if sigkeyid in pub_keyid_rowid_map:
                 uidsigs[sigkeyid] = (uidrowid, pub_keyid_rowid_map[sigkeyid][0], fields[5], fields[6], sigtype)
     if uidsigs:
         # store all sigs seen for previous key+uid

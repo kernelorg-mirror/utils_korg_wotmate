@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright © 2018-2024 by The Linux Foundation and contributors
 __author__ = 'Konstantin Ryabitsev <konstantin@linuxfoundation.org>'
 
-import sys
 import os
-import sqlite3
 import pathlib
-
+import sqlite3
+import sys
 from email.utils import parseaddr
+from typing import List, Set
 from urllib.parse import quote_plus
 
-from typing import Set, List
+import pydotplus.graphviz as pd  # type: ignore[import]
 
 import wotmate
-import pydotplus.graphviz as pd  # type: ignore[import]
 
 
 def get_header(kid):

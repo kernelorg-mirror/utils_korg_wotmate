@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright © 2018-2024 by The Linux Foundation and contributors
 __author__ = 'Konstantin Ryabitsev <konstantin@linuxfoundation.org>'
 
-import sys
-import subprocess
-import logging
 import itertools
+import logging
 import sqlite3
-
-from typing import Optional, Dict, List, Tuple, Set
-
+import subprocess
+import sys
 from datetime import datetime
-import pydotplus.graphviz as pd  # type: ignore
+from typing import Dict, List, Optional, Set, Tuple
 
+import pydotplus.graphviz as pd  # type: ignore
 
 ALGOS: Dict[int, str] = {
     1: 'RSA',
@@ -88,7 +85,7 @@ def gpg_run_command(args: List[str], with_colons: bool = True, stdin: Optional[b
 
 def lint(keydata: bytes) -> bool:
     sp = subprocess.Popen(
-        'sq cert -q lint'.split(), stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, env=None
+        ['sq', 'cert', '-q', 'lint'], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, env=None
     )
     sp.communicate(input=keydata)
 
@@ -234,7 +231,7 @@ def make_graph_node(c: sqlite3.Cursor, p_rowid: int, show_trust: bool = False) -
     except IndexError:
         show = ''
 
-    if algo in ALGOS.keys():
+    if algo in ALGOS:
         keyline = '{%s %s|%s}' % (ALGOS[algo], size, kid)
     else:
         keyline = '{%s}' % kid
@@ -255,7 +252,7 @@ def draw_key_paths(c: sqlite3.Cursor, paths: List[List[int]], graph: pd.Graph, s
     for path in paths:
         signer: Optional[pd.Node] = None
         for actor in path:
-            if actor not in seenactors.keys():
+            if actor not in seenactors:
                 anode = make_graph_node(c, actor, show_trust)
                 seenactors[actor] = anode
                 if signer is None:
