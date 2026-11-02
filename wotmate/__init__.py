@@ -97,12 +97,7 @@ def gpg_get_lines(args: List[str], matchonly: Sequence[bytes] = ()) -> List[byte
     for line in output.split(b'\n'):
         if not len(line.strip()) or line.startswith(b'#'):
             continue
-        if matchonly:
-            for match in matchonly:
-                if line.startswith(match):
-                    lines.append(line)
-                    continue
-        else:
+        if not matchonly or line.startswith(tuple(matchonly)):
             lines.append(line)
 
     return lines
