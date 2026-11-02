@@ -155,7 +155,7 @@ def keyring_load_sig_data(
                 sigtype = int(fields[10][:2], base=16)
                 if sigtype == 0x30:
                     # this is a revsig!
-                    if sigkeyid in uidsigs.keys():
+                    if sigkeyid in uidsigs:
                         # remove this signature from our sigs to store
                         del uidsigs[sigkeyid]
                         ignored_sigs += 1
