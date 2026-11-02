@@ -27,8 +27,8 @@ GNUPGHOME = None
 logger = logging.getLogger(__name__)
 
 # convenience caching to avoid redundant look-ups
-_all_signed_by_cache: Dict[int, List[int]] = dict()
-_all_pub_uiddata_cache: Dict[int, Tuple[str, str]] = dict()
+_all_signed_by_cache: Dict[int, List[int]] = {}
+_all_pub_uiddata_cache: Dict[int, Tuple[str, str]] = {}
 
 
 def get_pub_uid_by_pubrow(c: sqlite3.Cursor, p_rowid: int) -> Tuple[str, str]:
@@ -91,7 +91,7 @@ def lint(keydata: bytes) -> bool:
 
 def gpg_get_lines(args: List[str], matchonly: Sequence[bytes] = ()) -> List[bytes]:
     output = gpg_run_command(args)
-    lines: List[bytes] = list()
+    lines: List[bytes] = []
     logger.debug('Processing the output...')
     for line in output.split(b'\n'):
         if not len(line.strip()) or line.startswith(b'#'):
@@ -225,7 +225,7 @@ def make_graph_node(c: sqlite3.Cursor, p_rowid: int, show_trust: bool = False) -
 
 
 def draw_key_paths(c: sqlite3.Cursor, paths: List[List[int]], graph: pd.Graph, show_trust: bool):
-    seenactors: Dict[int, pd.Node] = dict()
+    seenactors: Dict[int, pd.Node] = {}
     # Paths often share hops, and graphviz draws every edge it is given
     seenedges: Set[Tuple[int, int]] = set()
     # make a subgraph for toplevel nodes
@@ -363,7 +363,7 @@ def get_u_key(c: sqlite3.Cursor) -> Optional[int]:
 def get_full_trust_paths(c: sqlite3.Cursor, b_p_rowid: int, maxdepth: int = 5) -> List[List[int]]:
     """Find the shortest path from each fully-trusted key to b_p_rowid."""
     full_trust = get_all_full_trust(c)
-    paths: List[List[int]] = list()
+    paths: List[List[int]] = []
     for t_p_rowid in full_trust:
         if t_p_rowid == b_p_rowid:
             continue

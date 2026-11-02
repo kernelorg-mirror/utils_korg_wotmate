@@ -14,8 +14,8 @@ def keyring_load_pub_uid(
     c: sqlite3.Cursor, use_weak: bool
 ) -> Tuple[Dict[str, Tuple[int, int]], Dict[Tuple[str, str], int]]:
     logger.info('Loading all valid pubkeys')
-    uid_hash_rowid_map: Dict[Tuple[str, str], int] = dict()
-    pub_keyid_rowid_map: Dict[str, Tuple[int, int]] = dict()
+    uid_hash_rowid_map: Dict[Tuple[str, str], int] = {}
+    pub_keyid_rowid_map: Dict[str, Tuple[int, int]] = {}
     current_pubkey = None
     current_pubrowid = None
     is_primary = 1
@@ -97,7 +97,7 @@ def keyring_load_sig_data(
     # used to track the current pubkey/uid
     pubkeyid = None
     uidrowid = None
-    uidsigs: Dict[str, Any] = dict()
+    uidsigs: Dict[str, Any] = {}
     revsigs: Set[str] = set()
     skip_uid = False
     sigcount = 0
@@ -109,7 +109,7 @@ def keyring_load_sig_data(
         if uidsigs and fields[0] in ('pub', 'uid'):
             c.executemany(sigquery, uidsigs.values())
             sigcount += len(uidsigs)
-            uidsigs = dict()
+            uidsigs = {}
             revsigs = set()
 
         if fields[0] == 'pub':
