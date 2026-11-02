@@ -41,7 +41,7 @@ def isolated_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv('GNUPGHOME', str(decoy))
     monkeypatch.setattr(wotmate, 'GNUPGHOME', None)
     monkeypatch.setattr(wotmate, 'GPGBIN', GPGBIN)
-    for cache in ('_all_signed_by_cache', '_all_sigs_cache', '_all_pub_uiddata_cache'):
+    for cache in ('_all_signed_by_cache', '_all_pub_uiddata_cache'):
         monkeypatch.setattr(wotmate, cache, {})
 
 

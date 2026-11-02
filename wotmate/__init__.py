@@ -28,7 +28,6 @@ logger = logging.getLogger(__name__)
 
 # convenience caching to avoid redundant look-ups
 _all_signed_by_cache: Dict[int, List[int]] = dict()
-_all_sigs_cache: Dict[int, List[int]] = dict()
 _all_pub_uiddata_cache: Dict[int, Tuple[str, str]] = dict()
 
 
@@ -164,19 +163,6 @@ def get_all_signed_by(c: sqlite3.Cursor, p_rowid: int) -> List[int]:
         _all_signed_by_cache[p_rowid] = [pubrowid for (pubrowid,) in c.fetchall()]
 
     return _all_signed_by_cache[p_rowid]
-
-
-def get_all_signed(c: sqlite3.Cursor, p_rowid: int) -> List[int]:
-    if p_rowid not in _all_sigs_cache:
-        c.execute(
-            """SELECT DISTINCT sig.pubrowid 
-                       FROM sig JOIN uid ON sig.uidrowid = uid.rowid 
-                      WHERE uid.pubrowid = ?""",
-            (p_rowid,),
-        )
-        _all_sigs_cache[p_rowid] = c.fetchall()
-
-    return _all_sigs_cache[p_rowid]
 
 
 def get_all_full_trust(c: sqlite3.Cursor) -> List[int]:
