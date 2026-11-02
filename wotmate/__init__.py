@@ -11,7 +11,7 @@ import sys
 from datetime import datetime
 from typing import Collection, Dict, List, Optional, Sequence, Set, Tuple
 
-import pydotplus.graphviz as pd  # type: ignore
+import pydotplus.graphviz as pd
 
 ALGOS: Dict[int, str] = {
     1: 'RSA',
@@ -202,20 +202,20 @@ def make_graph_node(c: sqlite3.Cursor, p_rowid: int, show_trust: bool = False) -
                   WHERE pub.rowid=? AND uid.is_primary = 1""",
         (p_rowid,),
     )
-    (kid, val, size, algo, cre, exp, trust, uiddata) = c.fetchone()  # type: ignore[assignment]
+    (kid, val, size, algo, cre, exp, trust, uiddata) = c.fetchone()
 
     nodename = 'a_%s' % p_rowid
     anode = pd.Node(nodename)
-    anode.set('shape', 'record')  # type: ignore[no-untyped-call]
-    anode.set('style', 'rounded')  # type: ignore[no-untyped-call]
+    anode.set('shape', 'record')
+    anode.set('style', 'rounded')
     if trust == 'u':
-        anode.set('color', 'purple')  # type: ignore[no-untyped-call]
+        anode.set('color', 'purple')
     elif trust == 'f':
-        anode.set('color', 'red')  # type: ignore[no-untyped-call]
+        anode.set('color', 'red')
     elif trust == 'm':
-        anode.set('color', 'blue')  # type: ignore[no-untyped-call]
+        anode.set('color', 'blue')
     else:
-        anode.set('color', 'gray')  # type: ignore[no-untyped-call]
+        anode.set('color', 'gray')
 
     uiddata = uiddata.replace('"', '')
     name = uiddata.split('<')[0].replace('"', '').strip()
@@ -237,10 +237,10 @@ def make_graph_node(c: sqlite3.Cursor, p_rowid: int, show_trust: bool = False) -
         keyline = '{%s}' % kid
 
     if show_trust:
-        anode.set('label', '{{%s\n%s|{val: %s|tru: %s}}|%s}' % (name, show, val, trust, keyline))  # type: ignore[no-untyped-call]
+        anode.set('label', '{{%s\n%s|{val: %s|tru: %s}}|%s}' % (name, show, val, trust, keyline))
     else:
-        anode.set('label', '{%s\n%s|%s}' % (name, show, keyline))  # type: ignore[no-untyped-call]
-    anode.set('URL', '%s.svg' % kid)  # type: ignore[no-untyped-call]
+        anode.set('label', '{%s\n%s|%s}' % (name, show, keyline))
+    anode.set('URL', '%s.svg' % kid)
     return anode
 
 
@@ -248,7 +248,7 @@ def draw_key_paths(c: sqlite3.Cursor, paths: List[List[int]], graph: pd.Graph, s
     seenactors: Dict[int, pd.Node] = dict()
     # make a subgraph for toplevel nodes
     tl_subgraph = pd.Subgraph('cluster_toplevel')
-    tl_subgraph.set('color', 'white')  # type: ignore[no-untyped-call]
+    tl_subgraph.set('color', 'white')
     for path in paths:
         signer: Optional[pd.Node] = None
         for actor in path:
@@ -256,18 +256,18 @@ def draw_key_paths(c: sqlite3.Cursor, paths: List[List[int]], graph: pd.Graph, s
                 anode = make_graph_node(c, actor, show_trust)
                 seenactors[actor] = anode
                 if signer is None:
-                    tl_subgraph.add_node(anode)  # type: ignore[no-untyped-call]
+                    tl_subgraph.add_node(anode)
                 else:
-                    graph.add_node(anode)  # type: ignore[no-untyped-call]
+                    graph.add_node(anode)
             else:
                 anode = seenactors[actor]
 
             if signer is not None:
-                graph.add_edge(pd.Edge(signer, anode))  # type: ignore[no-untyped-call]
+                graph.add_edge(pd.Edge(signer.get_name(), anode.get_name()))
 
             signer = anode
 
-    graph.add_subgraph(tl_subgraph)  # type: ignore[no-untyped-call]
+    graph.add_subgraph(tl_subgraph)
 
 
 def get_pubrow_id(c: sqlite3.Cursor, whatnot: str) -> Optional[int]:

@@ -6,7 +6,7 @@ __author__ = 'Konstantin Ryabitsev <konstantin@linuxfoundation.org>'
 import sqlite3
 import sys
 
-import pydotplus.graphviz as pd  # type: ignore[import]
+import pydotplus.graphviz as pd
 
 import wotmate
 
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     graph = pd.Dot(
         graph_type='digraph',
     )
-    graph.set_node_defaults(  # type: ignore[no-untyped-call]
+    graph.set_node_defaults(
         fontname=cmdargs.font,
         fontsize=cmdargs.fontsize,
     )
@@ -72,5 +72,5 @@ if __name__ == '__main__':
 
     chunks = cmdargs.out.split('.')
     outformat = chunks[-1]
-    graph.write(cmdargs.out, format=outformat)  # type: ignore[no-untyped-call]
+    graph.write(cmdargs.out, format=outformat)
     logger.info('Wrote %s' % cmdargs.out)

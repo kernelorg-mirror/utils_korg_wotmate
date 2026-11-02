@@ -11,7 +11,7 @@ from email.utils import parseaddr
 from typing import List, Set
 from urllib.parse import quote_plus
 
-import pydotplus.graphviz as pd  # type: ignore[import]
+import pydotplus.graphviz as pd
 
 import wotmate
 
@@ -246,14 +246,14 @@ if __name__ == '__main__':
             graph = pd.Dot(
                 graph_type='digraph',
             )
-            graph.set_node_defaults(  # type: ignore[no-untyped-call]
+            graph.set_node_defaults(
                 fontname=cmdargs.font,
                 fontsize=cmdargs.fontsize,
             )
 
             wotmate.draw_key_paths(c, key_paths, graph, cmdargs.show_trust)
             graphout = os.path.join(graphdir, '%s.%s' % (kid, cmdargs.graph_out_format))
-            graph.write(graphout, format=cmdargs.graph_out_format)  # type: ignore[no-untyped-call]
+            graph.write(graphout, format=cmdargs.graph_out_format)
             logger.info('Wrote %s', graphout)
 
             logger.debug('Writing out the text graph')
