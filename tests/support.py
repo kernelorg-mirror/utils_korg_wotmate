@@ -73,6 +73,9 @@ class Keyring:
     def sign(self, signer: Key, target: Key) -> None:
         self.gpg('--local-user', signer.fpr, '--quick-sign-key', target.fpr)
 
+    def revoke_sig(self, signer: Key, target: Key) -> None:
+        self.gpg('--quick-revoke-sig', target.fpr, signer.fpr)
+
     def make_db(self, *args: str) -> sqlite3.Cursor:
         """Run make-sqlitedb.py exactly as a user would, and open the result."""
         cmd = [

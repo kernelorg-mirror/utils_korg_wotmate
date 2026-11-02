@@ -29,3 +29,19 @@ def test_trust_chain(keyring: Keyring) -> None:
     assert wotmate.get_u_key(c) == pubrow(c, me)
     paths = wotmate.get_key_paths(c, pubrow(c, me), pubrow(c, bob))
     assert paths == [[pubrow(c, me), pubrow(c, alice), pubrow(c, bob)]]
+
+
+def test_revoked_sig_breaks_chain(keyring: Keyring) -> None:
+    # A revoked certification must not count as trust, even though gpg
+    # keeps listing the original signature next to its revocation.
+    me = keyring.add_key('Me <me@example.org>', trust='u')
+    alice = keyring.add_key('Alice <alice@example.org>', trust='f')
+    bob = keyring.add_key('Bob <bob@example.org>')
+    keyring.sign(me, alice)
+    keyring.sign(alice, bob)
+    keyring.revoke_sig(alice, bob)
+
+    c = keyring.make_db()
+
+    assert wotmate.get_key_paths(c, pubrow(c, me), pubrow(c, bob)) == []
+    assert wotmate.get_key_paths(c, pubrow(c, me), pubrow(c, alice)) == [[pubrow(c, me), pubrow(c, alice)]]
