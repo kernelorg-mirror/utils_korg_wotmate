@@ -194,14 +194,14 @@ def get_all_full_trust(c: sqlite3.Cursor) -> List[int]:
 
 def make_graph_node(c: sqlite3.Cursor, p_rowid: int, show_trust: bool = False) -> pd.Node:
     c.execute(
-        """SELECT pub.*, 
+        """SELECT pub.keyid, pub.validity, pub.size, pub.algo, pub.ownertrust,
                         uid.uiddata
-                   FROM uid JOIN pub 
-                     ON uid.pubrowid = pub.rowid 
+                   FROM uid JOIN pub
+                     ON uid.pubrowid = pub.rowid
                   WHERE pub.rowid=? AND uid.is_primary = 1""",
         (p_rowid,),
     )
-    (kid, val, size, algo, cre, exp, trust, uiddata) = c.fetchone()
+    (kid, val, size, algo, trust, uiddata) = c.fetchone()
 
     nodename = 'a_%s' % p_rowid
     anode = pd.Node(nodename)
