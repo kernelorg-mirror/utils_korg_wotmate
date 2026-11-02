@@ -13,33 +13,26 @@ import pydotplus.graphviz as pd  # type: ignore[import]
 
 if __name__ == '__main__':
     import argparse
+
     ap = argparse.ArgumentParser(
         description='Make a graph of paths from any key to any key',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    ap.add_argument('--quiet', action='store_true',
-                    default=False,
-                    help='Be quiet and only output errors')
-    ap.add_argument('--fromkey',
-                    help='Top key ID (if omitted, will use the key with ultimate trust)')
-    ap.add_argument('--maxdepth', default=4, type=int,
-                    help='Try up to this maximum depth')
-    ap.add_argument('--maxpaths', default=4, type=int,
-                    help='Stop after finding this many paths')
-    ap.add_argument('--font', default='droid sans,dejavu sans,helvetica',
-                    help='Font to use in the graph')
-    ap.add_argument('--fontsize', default='11',
-                    help='Font size to use in the graph')
-    ap.add_argument('--dbfile', default='siginfo.db',
-                    help='Sig database to use')
-    ap.add_argument('--out', default='graph.png',
-                    help='Write graph into this file, guessing the output format by extension')
-    ap.add_argument('--show-trust', action='store_true', dest='show_trust',
-                    default=False,
-                    help='Display validity and trust values')
-    ap.add_argument('key_id', nargs=1, default=False,
-                    help='Bottom key ID for path tracing')
+    ap.add_argument('--quiet', action='store_true', default=False, help='Be quiet and only output errors')
+    ap.add_argument('--fromkey', help='Top key ID (if omitted, will use the key with ultimate trust)')
+    ap.add_argument('--maxdepth', default=4, type=int, help='Try up to this maximum depth')
+    ap.add_argument('--maxpaths', default=4, type=int, help='Stop after finding this many paths')
+    ap.add_argument('--font', default='droid sans,dejavu sans,helvetica', help='Font to use in the graph')
+    ap.add_argument('--fontsize', default='11', help='Font size to use in the graph')
+    ap.add_argument('--dbfile', default='siginfo.db', help='Sig database to use')
+    ap.add_argument(
+        '--out', default='graph.png', help='Write graph into this file, guessing the output format by extension'
+    )
+    ap.add_argument(
+        '--show-trust', action='store_true', dest='show_trust', default=False, help='Display validity and trust values'
+    )
+    ap.add_argument('key_id', nargs=1, default=False, help='Bottom key ID for path tracing')
 
     cmdargs = ap.parse_args()
 

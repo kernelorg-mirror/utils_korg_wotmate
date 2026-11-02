@@ -11,8 +11,9 @@ import wotmate
 from typing import Tuple, Dict, Any, Set
 
 
-def keyring_load_pub_uid(c: sqlite3.Cursor,
-                         use_weak: bool) -> Tuple[Dict[str, Tuple[int, int]], Dict[Tuple[str, str], int]]:
+def keyring_load_pub_uid(
+    c: sqlite3.Cursor, use_weak: bool
+) -> Tuple[Dict[str, Tuple[int, int]], Dict[Tuple[str, str], int]]:
     logger.info('Loading all valid pubkeys')
     uid_hash_rowid_map: Dict[Tuple[str, str], int] = dict()
     pub_keyid_rowid_map: Dict[str, Tuple[int, int]] = dict()
@@ -36,14 +37,14 @@ def keyring_load_pub_uid(c: sqlite3.Cursor,
                 continue
 
             data = (
-                    fields[4], # KeyID
-                    fields[1], # Validity
-                    fields[2], # Key length
-                    fields[3], # Public key algorithm
-                    fields[5], # Creation date
-                    fields[6], # Expiration date
-                    fields[8], # Ownertrust
-                   )
+                fields[4],  # KeyID
+                fields[1],  # Validity
+                fields[2],  # Key length
+                fields[3],  # Public key algorithm
+                fields[5],  # Creation date
+                fields[6],  # Expiration date
+                fields[8],  # Ownertrust
+            )
             c.execute('INSERT INTO pub VALUES (?,?,?,?,?,?,?)', data)
             current_pubkey = fields[4]
             current_pubrowid = c.lastrowid
@@ -60,10 +61,10 @@ def keyring_load_pub_uid(c: sqlite3.Cursor,
                     continue
                 data = (
                     current_pubrowid,
-                    fields[1], # Validity
-                    fields[5], # Creation date
-                    fields[6], # Expiration date
-                    fields[9], # User-ID
+                    fields[1],  # Validity
+                    fields[5],  # Creation date
+                    fields[6],  # Expiration date
+                    fields[9],  # User-ID
                     is_primary,
                 )
                 c.execute('INSERT INTO uid VALUES (?,?,?,?,?,?)', data)
@@ -86,10 +87,12 @@ def keyring_load_pub_uid(c: sqlite3.Cursor,
     return pub_keyid_rowid_map, uid_hash_rowid_map
 
 
-def keyring_load_sig_data(c: sqlite3.Cursor,
-                          pub_keyid_rowid_map: Dict[str, Tuple[int, int]],
-                          uid_hash_rowid_map: Dict[Tuple[str, str], int],
-                          use_weak: bool = False) -> None:
+def keyring_load_sig_data(
+    c: sqlite3.Cursor,
+    pub_keyid_rowid_map: Dict[str, Tuple[int, int]],
+    uid_hash_rowid_map: Dict[Tuple[str, str], int],
+    use_weak: bool = False,
+) -> None:
     logger.info('Loading signature data')
     sigquery = 'INSERT INTO sig VALUES (?,?,?,?,?)'
     # used to track the current pubkey/uid
@@ -101,9 +104,7 @@ def keyring_load_sig_data(c: sqlite3.Cursor,
     sigcount = 0
     ignored_sigs = 0
 
-    for line in wotmate.gpg_get_lines(['--list-sigs', '--fast-list-mode'],
-                                      [b'pub:', b'uid', b'sig:', b'rev:']):
-
+    for line in wotmate.gpg_get_lines(['--list-sigs', '--fast-list-mode'], [b'pub:', b'uid', b'sig:', b'rev:']):
         fields = wotmate.gpg_get_fields(line)
 
         if uidsigs and fields[0] in ('pub', 'uid'):
@@ -157,7 +158,7 @@ def keyring_load_sig_data(c: sqlite3.Cursor,
                     # this is a revsig!
                     if sigkeyid in uidsigs.keys():
                         # remove this signature from our sigs to store
-                        del(uidsigs[sigkeyid])
+                        del uidsigs[sigkeyid]
                         ignored_sigs += 1
                     # add to revsigs, so we ignore this sig if we see it
                     revsigs.add(sigkeyid)
@@ -184,13 +185,7 @@ def keyring_load_sig_data(c: sqlite3.Cursor,
 
             # do we have the key that signed it?
             if sigkeyid in pub_keyid_rowid_map.keys():
-                uidsigs[sigkeyid] = (
-                    uidrowid,
-                    pub_keyid_rowid_map[sigkeyid][0],
-                    fields[5],
-                    fields[6],
-                    sigtype
-                )
+                uidsigs[sigkeyid] = (uidrowid, pub_keyid_rowid_map[sigkeyid][0], fields[5], fields[6], sigtype)
     if uidsigs:
         # store all sigs seen for previous key+uid
         c.executemany(sigquery, uidsigs.values())
@@ -207,23 +202,24 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    ap.add_argument('--quiet', action='store_true',
-                    default=False,
-                    help='Be quiet and only output errors')
-    ap.add_argument('--dbfile', dest='dbfile',
-                    default='siginfo.db',
-                    help='Create database in this file')
-    ap.add_argument('--use-weak-keys', dest='use_weak_keys',
-                    action='store_true', default=False,
-                    help='Do not discard keys considered too weak')
-    ap.add_argument('--use-weak-algos', dest='use_weak_algos',
-                    action='store_true', default=False,
-                    help='Do not discard cross-signatures that use weak algorithms')
-    ap.add_argument('--gpgbin',
-                    default='/usr/bin/gpg',
-                    help='Location of the gpg binary to use')
-    ap.add_argument('--gnupghome',
-                    help='Set this as gnupghome instead of using the default')
+    ap.add_argument('--quiet', action='store_true', default=False, help='Be quiet and only output errors')
+    ap.add_argument('--dbfile', dest='dbfile', default='siginfo.db', help='Create database in this file')
+    ap.add_argument(
+        '--use-weak-keys',
+        dest='use_weak_keys',
+        action='store_true',
+        default=False,
+        help='Do not discard keys considered too weak',
+    )
+    ap.add_argument(
+        '--use-weak-algos',
+        dest='use_weak_algos',
+        action='store_true',
+        default=False,
+        help='Do not discard cross-signatures that use weak algorithms',
+    )
+    ap.add_argument('--gpgbin', default='/usr/bin/gpg', help='Location of the gpg binary to use')
+    ap.add_argument('--gnupghome', help='Set this as gnupghome instead of using the default')
 
     cmdargs = ap.parse_args()
 

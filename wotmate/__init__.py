@@ -39,7 +39,9 @@ _seenkeys: Set[int] = set()
 
 def get_pub_uid_by_pubrow(c: sqlite3.Cursor, p_rowid: int) -> Tuple[str, str]:
     if p_rowid not in _all_pub_uiddata_cache:
-        c.execute('SELECT pub.keyid, uid.uiddata FROM uid JOIN pub ON uid.pubrowid = pub.rowid WHERE pubrowid=?', (p_rowid,))
+        c.execute(
+            'SELECT pub.keyid, uid.uiddata FROM uid JOIN pub ON uid.pubrowid = pub.rowid WHERE pubrowid=?', (p_rowid,)
+        )
         _all_pub_uiddata_cache[p_rowid] = c.fetchone()
     return _all_pub_uiddata_cache[p_rowid]
 
@@ -85,7 +87,9 @@ def gpg_run_command(args: List[str], with_colons: bool = True, stdin: Optional[b
 
 
 def lint(keydata: bytes) -> bool:
-    sp = subprocess.Popen('sq cert -q lint'.split(), stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, env=None)
+    sp = subprocess.Popen(
+        'sq cert -q lint'.split(), stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, env=None
+    )
     sp.communicate(input=keydata)
 
     return sp.returncode == 0
@@ -125,11 +129,11 @@ def gpg_get_fields(bline: bytes) -> List[str]:
 def init_sqlite_db(c: sqlite3.Cursor) -> None:
     # Create primary keys table
     logger.info('Initializing new sqlite3 db with metadata version %s' % DB_VERSION)
-    c.execute('''CREATE TABLE metadata (
+    c.execute("""CREATE TABLE metadata (
                   version INTEGER
-                 )''')
-    c.execute('''INSERT INTO metadata VALUES(?)''', (DB_VERSION,))
-    c.execute('''CREATE TABLE pub (
+                 )""")
+    c.execute("""INSERT INTO metadata VALUES(?)""", (DB_VERSION,))
+    c.execute("""CREATE TABLE pub (
                   keyid TEXT UNIQUE,
                   validity TEXT,
                   size INTEGER,
@@ -137,8 +141,8 @@ def init_sqlite_db(c: sqlite3.Cursor) -> None:
                   created TEXT,
                   expires TEXT,
                   ownertrust TEXT
-                 )''')
-    c.execute('''CREATE TABLE uid (
+                 )""")
+    c.execute("""CREATE TABLE uid (
                   pubrowid INTEGER,
                   validity TEXT,
                   created TEXT,
@@ -146,8 +150,8 @@ def init_sqlite_db(c: sqlite3.Cursor) -> None:
                   uiddata TEXT,
                   is_primary INTEGER,
                   FOREIGN KEY(pubrowid) REFERENCES pub(rowid)
-                 )''')
-    c.execute('''CREATE TABLE sig (
+                 )""")
+    c.execute("""CREATE TABLE sig (
                   uidrowid INTEGER,
                   pubrowid INTEGER,
                   created TEXT,
@@ -156,14 +160,17 @@ def init_sqlite_db(c: sqlite3.Cursor) -> None:
                   FOREIGN KEY(uidrowid) REFERENCES uid(rowid),
                   FOREIGN KEY(pubrowid) REFERENCES pub(rowid),
                   PRIMARY KEY (uidrowid, pubrowid)
-                 ) WITHOUT ROWID''')
+                 ) WITHOUT ROWID""")
 
 
 def get_all_signed_by(c: sqlite3.Cursor, p_rowid: int) -> List[int]:
     if p_rowid not in _all_signed_by_cache:
-        c.execute('''SELECT DISTINCT uid.pubrowid
+        c.execute(
+            """SELECT DISTINCT uid.pubrowid
                                 FROM uid JOIN sig ON sig.uidrowid = uid.rowid 
-                               WHERE sig.pubrowid=?''', (p_rowid,))
+                               WHERE sig.pubrowid=?""",
+            (p_rowid,),
+        )
         _all_signed_by_cache[p_rowid] = [pubrowid for (pubrowid,) in c.fetchall()]
 
     return _all_signed_by_cache[p_rowid]
@@ -171,27 +178,33 @@ def get_all_signed_by(c: sqlite3.Cursor, p_rowid: int) -> List[int]:
 
 def get_all_signed(c: sqlite3.Cursor, p_rowid: int) -> List[int]:
     if p_rowid not in _all_sigs_cache:
-        c.execute('''SELECT DISTINCT sig.pubrowid 
+        c.execute(
+            """SELECT DISTINCT sig.pubrowid 
                        FROM sig JOIN uid ON sig.uidrowid = uid.rowid 
-                      WHERE uid.pubrowid = ?''', (p_rowid,))
+                      WHERE uid.pubrowid = ?""",
+            (p_rowid,),
+        )
         _all_sigs_cache[p_rowid] = c.fetchall()
 
     return _all_sigs_cache[p_rowid]
 
 
 def get_all_full_trust(c: sqlite3.Cursor) -> List[int]:
-    c.execute('''SELECT DISTINCT pub.rowid
+    c.execute("""SELECT DISTINCT pub.rowid
                    FROM pub
-                  WHERE ownertrust IN ('u', 'f')''')
+                  WHERE ownertrust IN ('u', 'f')""")
     return c.fetchall()
 
 
 def make_graph_node(c: sqlite3.Cursor, p_rowid: int, show_trust: bool = False) -> pd.Node:
-    c.execute('''SELECT pub.*, 
+    c.execute(
+        """SELECT pub.*, 
                         uid.uiddata
                    FROM uid JOIN pub 
                      ON uid.pubrowid = pub.rowid 
-                  WHERE pub.rowid=? AND uid.is_primary = 1''', (p_rowid,))
+                  WHERE pub.rowid=? AND uid.is_primary = 1""",
+        (p_rowid,),
+    )
     (kid, val, size, algo, cre, exp, trust, uiddata) = c.fetchone()  # type: ignore[assignment]
 
     nodename = 'a_%s' % p_rowid
@@ -265,7 +278,7 @@ def get_pubrow_id(c: sqlite3.Cursor, whatnot: str) -> Optional[int]:
     try:
         int(whatnot, 16)
         as_keyid = '%%%s' % whatnot[-16:].upper()
-        c.execute('''SELECT DISTINCT rowid FROM pub WHERE keyid LIKE ?''', (as_keyid,))
+        c.execute("""SELECT DISTINCT rowid FROM pub WHERE keyid LIKE ?""", (as_keyid,))
         rows = c.fetchall()
         if len(rows) == 1:
             return rows[0][0]
@@ -279,7 +292,7 @@ def get_pubrow_id(c: sqlite3.Cursor, whatnot: str) -> Optional[int]:
         pass
 
     # attempt to look up in uiddata
-    c.execute('''SELECT DISTINCT pubrowid FROM uid WHERE uiddata LIKE ? COLLATE NOCASE''', ('%%%s%%' % whatnot,))
+    c.execute("""SELECT DISTINCT pubrowid FROM uid WHERE uiddata LIKE ? COLLATE NOCASE""", ('%%%s%%' % whatnot,))
     rows = c.fetchall()
     if len(rows) == 1:
         return rows[0][0]
@@ -325,7 +338,7 @@ def get_key_paths(c: sqlite3.Cursor, t_p_rowid: int, b_p_rowid: int, maxdepth: i
                 found = set()
                 continue
 
-            #logger.debug(f'consider: {[str(p) + " " + get_uiddata_by_pubrow(c, p) for p in path]} @{depth=}')
+            # logger.debug(f'consider: {[str(p) + " " + get_uiddata_by_pubrow(c, p) for p in path]} @{depth=}')
 
             # We found a shortest path to path[-1], so we don't need to consider further paths leading to it
             found.add(path[-1])
@@ -341,18 +354,19 @@ def get_key_paths(c: sqlite3.Cursor, t_p_rowid: int, b_p_rowid: int, maxdepth: i
 
     ret = list(itertools.islice(gen_uniq_paths(t_p_rowid, b_p_rowid, maxdepth), maxpaths))
     if not ret:
-        logger.info('No valid paths between %s and %s',
-                    get_uiddata_by_pubrow(c, t_p_rowid), get_uiddata_by_pubrow(c, b_p_rowid))
+        logger.info(
+            'No valid paths between %s and %s', get_uiddata_by_pubrow(c, t_p_rowid), get_uiddata_by_pubrow(c, b_p_rowid)
+        )
 
     return ret
 
 
 def get_u_key(c: sqlite3.Cursor) -> Optional[int]:
-    c.execute('''SELECT rowid 
+    c.execute("""SELECT rowid 
                    FROM pub
                   WHERE ownertrust = 'u' 
                   LIMIT 1
-    ''')
+    """)
     try:
         (p_rowid,) = c.fetchone()
         return p_rowid

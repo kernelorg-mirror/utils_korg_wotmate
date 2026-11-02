@@ -17,64 +17,78 @@ from typing import Set, List
 import wotmate
 import pydotplus.graphviz as pd  # type: ignore[import]
 
+
 def get_header(kid):
-    args = ['--list-options', 'show-notations', '--list-options',
-            'no-show-uid-validity', '--with-subkey-fingerprints', '--list-key', kid]
+    args = [
+        '--list-options',
+        'show-notations',
+        '--list-options',
+        'no-show-uid-validity',
+        '--with-subkey-fingerprints',
+        '--list-key',
+        kid,
+    ]
     header = wotmate.gpg_run_command(args, with_colons=False)
-    return header + b"\n\n"
+    return header + b'\n\n'
+
 
 if __name__ == '__main__':
     import argparse
+
     ap = argparse.ArgumentParser(
         description='Export a keyring as individual .asc files with graphs',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    ap.add_argument('--quiet', action='store_true',
-                    default=False,
-                    help='Be quiet and only output errors')
-    ap.add_argument('--verbose', action='store_true',
-                    default=False,
-                    help='emit extra logging')
-    ap.add_argument('--ignore-linter', dest='ignore_linter', action='store_true',
-                    default=False,
-                    help='Also update keys that fail the Sequoia linter check')
-    ap.add_argument('--fromkey',
-                    help='Top key ID (if omitted, will use the key with ultimate trust)')
-    ap.add_argument('--maxdepth', default=4, type=int,
-                    help='Try up to this maximum depth')
-    ap.add_argument('--maxpaths', default=4, type=int,
-                    help='Stop after finding this many paths')
-    ap.add_argument('--font', default='droid sans,dejavu sans,helvetica',
-                    help='Font to use in the graph')
-    ap.add_argument('--fontsize', default='11',
-                    help='Font size to use in the graph')
-    ap.add_argument('--dbfile', default='siginfo.db',
-                    help='Sig database to use')
-    ap.add_argument('--gpgbin',
-                    default='/usr/bin/gpg',
-                    help='Location of the gpg binary to use')
-    ap.add_argument('--gnupghome',
-                    help='Set this as gnupghome instead of using the default')
-    ap.add_argument('--outdir', default='export',
-                    help='Export keyring data into this dir as keys/ and graphs/ subdirs')
-    ap.add_argument('--show-trust', action='store_true', dest='show_trust',
-                    default=False,
-                    help='Display validity and trust values')
-    ap.add_argument('--graph-out-format', dest='graph_out_format', default='svg',
-                    help='Export graphs in this format')
-    ap.add_argument('--key-export-options', dest='key_export_options',
-                    default='export-attributes,export-clean',
-                    help='The value to pass to gpg --export-options')
-    ap.add_argument('--use-weak-algos', dest='use_weak_algos',
-                    action='store_true', default=False,
-                    help='Do not discard cross-signatures that use weak algorithms')
-    ap.add_argument('--gen-b4-keyring', action='store_true', dest='gen_b4_keyring',
-                    default=False,
-                    help='Generate a b4-style symlinked keyring as well')
-    ap.add_argument('--update-header', action='store_true', dest='update_header',
-                    default=False,
-                    help='Update certificate files also on header changes')
+    ap.add_argument('--quiet', action='store_true', default=False, help='Be quiet and only output errors')
+    ap.add_argument('--verbose', action='store_true', default=False, help='emit extra logging')
+    ap.add_argument(
+        '--ignore-linter',
+        dest='ignore_linter',
+        action='store_true',
+        default=False,
+        help='Also update keys that fail the Sequoia linter check',
+    )
+    ap.add_argument('--fromkey', help='Top key ID (if omitted, will use the key with ultimate trust)')
+    ap.add_argument('--maxdepth', default=4, type=int, help='Try up to this maximum depth')
+    ap.add_argument('--maxpaths', default=4, type=int, help='Stop after finding this many paths')
+    ap.add_argument('--font', default='droid sans,dejavu sans,helvetica', help='Font to use in the graph')
+    ap.add_argument('--fontsize', default='11', help='Font size to use in the graph')
+    ap.add_argument('--dbfile', default='siginfo.db', help='Sig database to use')
+    ap.add_argument('--gpgbin', default='/usr/bin/gpg', help='Location of the gpg binary to use')
+    ap.add_argument('--gnupghome', help='Set this as gnupghome instead of using the default')
+    ap.add_argument('--outdir', default='export', help='Export keyring data into this dir as keys/ and graphs/ subdirs')
+    ap.add_argument(
+        '--show-trust', action='store_true', dest='show_trust', default=False, help='Display validity and trust values'
+    )
+    ap.add_argument('--graph-out-format', dest='graph_out_format', default='svg', help='Export graphs in this format')
+    ap.add_argument(
+        '--key-export-options',
+        dest='key_export_options',
+        default='export-attributes,export-clean',
+        help='The value to pass to gpg --export-options',
+    )
+    ap.add_argument(
+        '--use-weak-algos',
+        dest='use_weak_algos',
+        action='store_true',
+        default=False,
+        help='Do not discard cross-signatures that use weak algorithms',
+    )
+    ap.add_argument(
+        '--gen-b4-keyring',
+        action='store_true',
+        dest='gen_b4_keyring',
+        default=False,
+        help='Generate a b4-style symlinked keyring as well',
+    )
+    ap.add_argument(
+        '--update-header',
+        action='store_true',
+        dest='update_header',
+        default=False,
+        help='Update certificate files also on header changes',
+    )
 
     cmdargs = ap.parse_args()
 
@@ -99,12 +113,12 @@ if __name__ == '__main__':
             sys.exit(1)
 
     # Iterate through all keys
-    c.execute('''SELECT pub.rowid,
+    c.execute("""SELECT pub.rowid,
                         pub.keyid,
                         uid.uiddata
                    FROM uid JOIN pub
                      ON uid.pubrowid = pub.rowid
-                  WHERE uid.is_primary = 1''')
+                  WHERE uid.is_primary = 1""")
 
     if not os.path.isdir(cmdargs.outdir):
         os.mkdir(cmdargs.outdir)
@@ -117,7 +131,7 @@ if __name__ == '__main__':
 
     kcount = wcount = 0
     my_symlinks: Set[str] = set()
-    for (to_rowid, kid, uiddata) in c.fetchall():
+    for to_rowid, kid, uiddata in c.fetchall():
         kcount += 1
         # First, export the key
         args: List[str] = ['-a', '--export']
@@ -165,7 +179,7 @@ if __name__ == '__main__':
             kpblock += '\n'
         key_paths_repr = kpblock.encode()
 
-        txtgraphout = os.path.join(graphdir, "%s.txt" % kid)
+        txtgraphout = os.path.join(graphdir, '%s.txt' % kid)
         if not os.path.exists(txtgraphout):
             logger.debug('Forcing generation of the text graph for %s', kid)
             trust_changed = True
@@ -173,7 +187,7 @@ if __name__ == '__main__':
             # Load it up and see if trust relationships changed
             with open(txtgraphout, 'rb') as fin:
                 old_key_paths_repr = fin.read()
-                trust_changed = (key_paths_repr != old_key_paths_repr)
+                trust_changed = key_paths_repr != old_key_paths_repr
                 if trust_changed:
                     logger.debug('Trust changes detected for %s', kid)
 
@@ -185,7 +199,7 @@ if __name__ == '__main__':
 
         if key_changed:
             header = get_header(kid)
-            keyexport = header + keydata + b"\n"
+            keyexport = header + keydata + b'\n'
 
             # Only do this for newly added keys
             if not key_already_exists and not wotmate.lint(keydata):
@@ -210,8 +224,9 @@ if __name__ == '__main__':
                         if not len(parts[1]) or parts[1].count('@') != 1:
                             continue
                         local, domain = parts[1].split('@', 1)
-                        kpath = os.path.join(cmdargs.outdir, '.keyring', 'openpgp', quote_plus(domain),
-                                             quote_plus(local))
+                        kpath = os.path.join(
+                            cmdargs.outdir, '.keyring', 'openpgp', quote_plus(domain), quote_plus(local)
+                        )
                         pathlib.Path(kpath).mkdir(parents=True, exist_ok=True)
                         spath = os.path.join(kpath, 'default')
                         tpath = os.path.relpath(keyout, kpath)
