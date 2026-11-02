@@ -55,13 +55,13 @@ class Keyring:
             raise RuntimeError(msg)
         return res.stdout
 
-    def add_key(self, uid: str, trust: str = 'q') -> Key:
+    def add_key(self, uid: str, trust: str = 'q', algo: str = 'ed25519') -> Key:
         """Make a certify-only key.
 
         gpg gives every key it generates ultimate ownertrust, which would
         make every key a trust root. So the ownertrust is set right after.
         """
-        self.gpg('--quick-gen-key', uid, 'ed25519', 'cert', 'never')
+        self.gpg('--quick-gen-key', uid, algo, 'cert', 'never')
         out = self.gpg('--with-colons', '--list-keys', f'={uid}')
         fpr = next(line.split(':')[9] for line in out.decode().splitlines() if line.startswith('fpr:'))
         self.set_trust(Key(uid, fpr), trust)
@@ -69,6 +69,12 @@ class Keyring:
 
     def set_trust(self, key: Key, trust: str) -> None:
         self.gpg('--import-ownertrust', stdin=f'{key.fpr}:{OWNERTRUST[trust]}:\n'.encode())
+
+    def revoke_key(self, key: Key) -> None:
+        # gpg writes a revocation certificate for every key it makes. It is
+        # "defused" with a leading colon so that nobody imports it by accident.
+        revcert = (self.homedir / 'openpgp-revocs.d' / f'{key.fpr}.rev').read_text()
+        self.gpg('--import', stdin=revcert.replace(':-----BEGIN', '-----BEGIN').encode())
 
     def sign(self, signer: Key, target: Key) -> None:
         self.gpg('--local-user', signer.fpr, '--quick-sign-key', target.fpr)

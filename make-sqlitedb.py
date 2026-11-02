@@ -25,6 +25,9 @@ def keyring_load_pub_uid(
     for line in wotmate.gpg_get_lines(['--list-public-keys'], [b'pub:', b'uid']):
         fields = wotmate.gpg_get_fields(line)
         if fields[0] == 'pub':
+            # Unset until this key is accepted, so that the UIDs of a key we
+            # skip are not stored on the key before it
+            current_pubkey = current_pubrowid = None
             # is this key expired/revoked or is otherwise invalid?
             if fields[1] in ('e', 'r', 'i'):
                 ignored_keys += 1
@@ -54,32 +57,29 @@ def keyring_load_pub_uid(
                 ignored_uids += 1
                 continue
 
-            if current_pubrowid is not None:
-                if current_pubkey is None:
-                    logger.error('No pubkey for uid %s' % fields[7])
-                    continue
-                data = (
-                    current_pubrowid,
-                    fields[1],  # Validity
-                    fields[5],  # Creation date
-                    fields[6],  # Expiration date
-                    fields[9],  # User-ID
-                    is_primary,
-                )
-                c.execute('INSERT INTO uid VALUES (?,?,?,?,?,?)', data)
-                if c.lastrowid is None:
-                    logger.error('Failed to insert uid %s' % fields[9])
-                    continue
-                uid_hash_rowid_map[(current_pubkey, fields[7])] = c.lastrowid
-
-                if is_primary:
-                    pub_keyid_rowid_map[current_pubkey] = (current_pubrowid, c.lastrowid)
-
-                is_primary = 0
-            else:
+            # Both are None while the key this UID belongs to was skipped
+            if current_pubkey is None or current_pubrowid is None:
                 ignored_uids += 1
-        else:
-            pass
+                continue
+
+            data = (
+                current_pubrowid,
+                fields[1],  # Validity
+                fields[5],  # Creation date
+                fields[6],  # Expiration date
+                fields[9],  # User-ID
+                is_primary,
+            )
+            c.execute('INSERT INTO uid VALUES (?,?,?,?,?,?)', data)
+            if c.lastrowid is None:
+                logger.error('Failed to insert uid %s' % fields[9])
+                continue
+            uid_hash_rowid_map[(current_pubkey, fields[7])] = c.lastrowid
+
+            if is_primary:
+                pub_keyid_rowid_map[current_pubkey] = (current_pubrowid, c.lastrowid)
+
+            is_primary = 0
 
     logger.info('Loaded %s pubkeys (%s ignored)' % (len(pub_keyid_rowid_map), ignored_keys))
     logger.info('Loaded %s uids (%s ignored)' % (len(uid_hash_rowid_map), ignored_uids))

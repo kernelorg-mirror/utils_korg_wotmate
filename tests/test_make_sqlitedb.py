@@ -7,6 +7,10 @@ from __future__ import annotations
 import shlex
 from pathlib import Path
 
+import pytest
+
+import wotmate
+
 from support import GPGBIN, Keyring, pubrow
 
 
@@ -43,3 +47,23 @@ def test_uid_added_between_passes(keyring: Keyring, tmp_path: Path) -> None:
         (pubrow(c, bob),),
     )
     assert c.fetchall() == [('Bob <bob@example.org>', pubrow(c, me))]
+
+
+@pytest.mark.parametrize('skipped', ['weak', 'revoked'])
+def test_skipped_key_uids(keyring: Keyring, skipped: str) -> None:
+    # Keys that make-sqlitedb.py skips must leave no trace in the db. Their
+    # UIDs must not be stored on the key listed before them, or a name
+    # lookup for the skipped key quietly finds a different key.
+    # gpg marks a revoked key's UIDs as revoked too, so that case goes
+    # through the UID check as well. A weak key's UIDs look valid.
+    me = keyring.add_key('Me <me@example.org>', trust='u')
+    if skipped == 'weak':
+        keyring.add_key('Skipped <skipped@example.org>', algo='rsa1024')
+    else:
+        keyring.revoke_key(keyring.add_key('Skipped <skipped@example.org>'))
+
+    c = keyring.make_db()
+
+    c.execute('SELECT pubrowid, uiddata FROM uid')
+    assert c.fetchall() == [(pubrow(c, me), 'Me <me@example.org>')]
+    assert wotmate.get_pubrow_id(c, 'skipped@example.org') is None
