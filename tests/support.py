@@ -67,6 +67,12 @@ class Keyring:
         self.set_trust(Key(uid, fpr), trust)
         return Key(uid, fpr)
 
+    def add_uid(self, key: Key, uid: str) -> None:
+        self.gpg('--quick-add-uid', key.fpr, uid)
+
+    def revoke_uid(self, key: Key, uid: str) -> None:
+        self.gpg('--quick-revoke-uid', key.fpr, uid)
+
     def set_trust(self, key: Key, trust: str) -> None:
         self.gpg('--import-ownertrust', stdin=f'{key.fpr}:{OWNERTRUST[trust]}:\n'.encode())
 

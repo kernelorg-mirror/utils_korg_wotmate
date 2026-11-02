@@ -7,8 +7,6 @@ import os
 import pathlib
 import sqlite3
 import sys
-from email.utils import parseaddr
-from urllib.parse import quote_plus
 
 import pydotplus.graphviz as pd
 
@@ -126,9 +124,12 @@ if __name__ == '__main__':
     if not os.path.isdir(graphdir):
         os.mkdir(graphdir)
 
+    keyring_dir = os.path.join(cmdargs.outdir, '.keyring', 'openpgp')
+
     kcount = wcount = 0
     my_symlinks: set[str] = set()
-    for to_rowid, kid, uiddata in c.fetchall():
+    rows = c.fetchall()
+    for to_rowid, kid, uiddata in rows:
         kcount += 1
         # First, export the key
         args: list[str] = ['-a', '--export']
@@ -218,35 +219,24 @@ if __name__ == '__main__':
                 logger.info('Wrote %s', keyout)
 
             if cmdargs.gen_b4_keyring:
-                # Grab all uid lines from the header
-                for line in header.split(b'\n'):
-                    if not line.startswith(b'uid'):
-                        continue
-                    line = line[3:].decode('utf-8', 'ignore').strip()
-                    if line:
-                        parts = parseaddr(line)
-                        if not len(parts[1]) or parts[1].count('@') != 1:
+                for addr in wotmate.header_addresses(header):
+                    spath = wotmate.b4_link_path(keyring_dir, addr)
+                    kpath = os.path.dirname(spath)
+                    pathlib.Path(kpath).mkdir(parents=True, exist_ok=True)
+                    tpath = os.path.relpath(keyout, kpath)
+                    if os.path.islink(spath):
+                        if os.readlink(spath) == tpath:
                             continue
-                        local, domain = parts[1].split('@', 1)
-                        kpath = os.path.join(
-                            cmdargs.outdir, '.keyring', 'openpgp', quote_plus(domain), quote_plus(local)
-                        )
-                        pathlib.Path(kpath).mkdir(parents=True, exist_ok=True)
-                        spath = os.path.join(kpath, 'default')
-                        tpath = os.path.relpath(keyout, kpath)
-                        if os.path.islink(spath):
-                            if os.readlink(spath) == tpath:
-                                continue
-                            if spath in my_symlinks:
-                                # There's multiple keys with the same identity. First one wins, for the lack of a
-                                # better solution that is also sane.
-                                logger.info('Notice: multiple keys with the same UID %s', parts[1])
-                                continue
-                            os.unlink(spath)
-                            logger.info('Notice: fixing symlink for %s', parts[1])
-                        os.symlink(tpath, spath)
-                        my_symlinks.add(spath)
-                        logger.info('Symlinked %s to %s', kid, spath)
+                        if spath in my_symlinks:
+                            # There's multiple keys with the same identity. First one wins, for the lack of a
+                            # better solution that is also sane.
+                            logger.info('Notice: multiple keys with the same UID %s', addr)
+                            continue
+                        os.unlink(spath)
+                        logger.info('Notice: fixing symlink for %s', addr)
+                    os.symlink(tpath, spath)
+                    my_symlinks.add(spath)
+                    logger.info('Symlinked %s to %s', kid, spath)
 
         if trust_changed:
             graph = pd.Dot(
@@ -268,5 +258,22 @@ if __name__ == '__main__':
                 logger.info('Wrote %s', txtgraphout)
 
         wcount += 1
+
+    if cmdargs.gen_b4_keyring:
+        # Links are only added while exporting a changed key, so the link of
+        # a UID that went away would otherwise stay forever. Check every key
+        # we just exported, changed or not, against the UIDs in its header.
+        wanted: dict[str, set[str]] = {}
+        for _, kid, _ in rows:
+            keyout = os.path.join(keydir, f'{kid}.asc')
+            if not os.path.exists(keyout):
+                continue
+            with open(keyout, 'rb') as fin:
+                # Stop at the armor, whose base64 lines could start with "uid"
+                header = fin.read().split(b'-----BEGIN', 1)[0]
+            wanted[kid] = set(wotmate.header_addresses(header))
+        for spath in wotmate.prune_b4_keyring(keyring_dir, keydir, wanted):
+            logger.info('Removed stale symlink %s', spath)
+            wcount += 1
 
     logger.info('Processed %s keys, made %s changes', kcount, wcount)

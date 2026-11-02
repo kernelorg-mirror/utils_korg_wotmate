@@ -6,11 +6,14 @@ __author__ = 'Konstantin Ryabitsev <konstantin@linuxfoundation.org>'
 
 import itertools
 import logging
+import os
 import sqlite3
 import subprocess
 import sys
 from collections.abc import Collection, Sequence
 from datetime import datetime
+from email.utils import parseaddr
+from urllib.parse import quote_plus
 
 import pydotplus.graphviz as pd
 
@@ -89,6 +92,56 @@ def lint(keydata: bytes) -> bool:
     sp.communicate(input=keydata)
 
     return sp.returncode == 0
+
+
+def header_addresses(header: bytes) -> list[str]:
+    # The header is gpg's --list-key output, which leaves out revoked and
+    # expired UIDs, so it lists exactly the addresses b4 should trust.
+    addrs: list[str] = []
+    for bline in header.split(b'\n'):
+        if not bline.startswith(b'uid'):
+            continue
+        try:
+            line = bline[3:].decode().strip()
+        except UnicodeDecodeError:
+            # Dropping the bad bytes would link a different, made-up address
+            logger.warning('Skipping undecodable UID: %r', bline)
+            continue
+        addr = parseaddr(line)[1]
+        if addr.count('@') == 1:
+            addrs.append(addr)
+    return addrs
+
+
+def b4_link_path(keyring_dir: str, addr: str) -> str:
+    local, domain = addr.split('@')
+    return os.path.join(keyring_dir, quote_plus(domain), quote_plus(local), 'default')
+
+
+def prune_b4_keyring(keyring_dir: str, keydir: str, wanted: dict[str, set[str]]) -> list[str]:
+    # wanted maps the IDs of the keys exported in this run to their
+    # addresses. Links to any other key are left alone: without a fresh UID
+    # list there is nothing to judge them by, and expired keys keep their
+    # links on purpose so b4 can still check old signatures.
+    wanted_paths = {kid: {b4_link_path(keyring_dir, addr) for addr in addrs} for kid, addrs in wanted.items()}
+    keydir = os.path.realpath(keydir)
+    removed: list[str] = []
+    for dirpath, _, filenames in os.walk(keyring_dir, topdown=False):
+        for fname in filenames:
+            spath = os.path.join(dirpath, fname)
+            if not os.path.islink(spath):
+                continue
+            target = os.path.realpath(spath)
+            kid = os.path.basename(target)[: -len('.asc')]
+            if os.path.dirname(target) != keydir or kid not in wanted_paths:
+                continue
+            if spath not in wanted_paths[kid]:
+                os.unlink(spath)
+                removed.append(spath)
+        # Bottom-up walk, so a domain dir is seen after its emptied subdirs
+        if dirpath != keyring_dir and not os.listdir(dirpath):
+            os.rmdir(dirpath)
+    return removed
 
 
 def gpg_get_lines(args: list[str], matchonly: Sequence[bytes] = ()) -> list[bytes]:
