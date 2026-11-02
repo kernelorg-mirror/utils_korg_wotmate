@@ -1,0 +1,84 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# wotmate is a set of scripts run from a checkout, not an installable package.
+# This file only exists so uv can manage the runtime and tooling environment
+# that ci.sh and ci-matrix.sh run in.
+[project]
+name = "wotmate"
+# uv refuses a [project] table without a version, even when nothing is built.
+version = "0"
+requires-python = ">=3.9"
+dependencies = [
+    "pydotplus",
+]
+
+[dependency-groups]
+dev = [
+    "mypy",
+    "pyright",
+    "pytest",
+    "ruff",
+    "ty",
+]
+
+[tool.uv]
+# Nothing to build: the scripts import wotmate/ from the checkout.
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The project is never installed, so the checkout itself must be importable.
+pythonpath = ["."]
+addopts = "--tb=short"
+
+[tool.mypy]
+# python_version is left unset: mypy no longer accepts a 3.9 target. The other
+# checkers are pinned to py39, and ci-matrix.sh runs the tests on 3.9.
+exclude = ['^\.venv']
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+# pydotplus ships neither type hints nor stubs.
+module = ["pydotplus", "pydotplus.*"]
+ignore_missing_imports = true
+
+[tool.pyright]
+# Specifying exclude replaces pyright's own defaults, so the per-interpreter
+# environments from ci-matrix.sh must be listed explicitly.
+exclude = [".venv*"]
+pythonVersion = "3.9"
+typeCheckingMode = "standard"
+
+[tool.ty.environment]
+python-version = "3.9"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+
+[tool.ruff.lint]
+extend-select = [
+    "ARG",
+    "I",
+]
+ignore = [
+    # Modernisation backlog: the tree predates PEP 585/604 and f-strings, and
+    # these fire on nearly every line. Rewriting them is a cleanup series of
+    # its own; drop each entry here as that series lands.
+    "C408",  # unnecessary-collection-call: dict() / list()
+    "FA100", # future-rewritable-type-annotation
+    "UP006", # non-pep585-annotation: typing.Dict -> dict
+    "UP031", # printf-string-formatting
+    "UP035", # deprecated-import: from typing import Dict
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["wotmate"]
+# tests/support.py is imported by module name, since tests/ is not a package.
+known-local-folder = ["support"]
+
+[tool.ruff.format]
+quote-style = "single"

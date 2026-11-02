@@ -7,3 +7,9 @@ keyring.gpg
 *.pyc
 *~
 *.swp
+__pycache__/
+.venv/
+.venv-*/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
