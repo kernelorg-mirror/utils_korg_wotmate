@@ -91,14 +91,14 @@ def lint(keydata: bytes) -> bool:
     return sp.returncode == 0
 
 
-def gpg_get_lines(args: List[str], matchonly: List[bytes] = list()) -> List[bytes]:
+def gpg_get_lines(args: List[str], matchonly: Sequence[bytes] = ()) -> List[bytes]:
     output = gpg_run_command(args)
     lines: List[bytes] = list()
     logger.debug('Processing the output...')
     for line in output.split(b'\n'):
         if not len(line.strip()) or line.startswith(b'#'):
             continue
-        if matchonly and len(matchonly):
+        if matchonly:
             for match in matchonly:
                 if line.startswith(match):
                     lines.append(line)
