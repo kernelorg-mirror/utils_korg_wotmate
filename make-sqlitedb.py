@@ -34,7 +34,6 @@ def keyring_load_pub_uid(
                 continue
             # is this key too weak to bother considering it?
             if not use_weak and (fields[3] in ('1', '17') and int(fields[2]) < 2048):
-                # logger.info('Ignoring weak key: %s' % fields[4])
                 ignored_keys += 1
                 continue
 

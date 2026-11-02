@@ -65,12 +65,6 @@ extend-select = [
     "G", # logging format: let logging do the formatting, and only when needed
     "I",
 ]
-ignore = [
-    # Modernisation backlog: the tree predates PEP 585/604 and f-strings, and
-    # these fire on nearly every line. Rewriting them is a cleanup series of
-    # its own; drop each entry here as that series lands.
-    "UP031", # printf-string-formatting
-]
 
 [tool.ruff.lint.isort]
 known-first-party = ["wotmate"]

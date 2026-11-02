@@ -6,8 +6,8 @@ set -eu
 # in ci-matrix.sh, which is slow and only needed before releases.
 #
 # Ratchet status: wotmate predates type annotations and the sibling projects'
-# lint rules, so the checkers start loose. ruff runs its defaults plus isort,
-# with the modernisation rules listed in pyproject.toml ignored; mypy runs with
+# lint rules, so the type checkers start loose. ruff runs its defaults plus the
+# rules in pyproject.toml, with nothing ignored; mypy runs with
 # check_untyped_defs, pyright at `standard`, and ty at its default rules. Keep
 # tightening in pyproject.toml; the goal is `mypy --strict` / pyright `strict`
 # / ty `all = "error"`, as in the sibling projects. Prefer real fixes and real

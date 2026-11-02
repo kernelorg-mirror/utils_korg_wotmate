@@ -137,7 +137,7 @@ if __name__ == '__main__':
         args += ['--export-options', cmdargs.key_export_options, kid]
 
         keydata = wotmate.gpg_run_command(args, with_colons=False)
-        keyout = os.path.join(keydir, '%s.asc' % kid)
+        keyout = os.path.join(keydir, f'{kid}.asc')
 
         # Is there already a key file in place?
         key_changed = False
@@ -176,7 +176,7 @@ if __name__ == '__main__':
             kpblock += '\n'
         key_paths_repr = kpblock.encode()
 
-        txtgraphout = os.path.join(graphdir, '%s.txt' % kid)
+        txtgraphout = os.path.join(graphdir, f'{kid}.txt')
         if not os.path.exists(txtgraphout):
             logger.debug('Forcing generation of the text graph for %s', kid)
             trust_changed = True
@@ -258,7 +258,7 @@ if __name__ == '__main__':
             )
 
             wotmate.draw_key_paths(c, key_paths, graph, cmdargs.show_trust)
-            graphout = os.path.join(graphdir, '%s.%s' % (kid, cmdargs.graph_out_format))
+            graphout = os.path.join(graphdir, f'{kid}.{cmdargs.graph_out_format}')
             graph.write(graphout, format=cmdargs.graph_out_format)
             logger.info('Wrote %s', graphout)
 

@@ -175,6 +175,11 @@ def get_all_full_trust(c: sqlite3.Cursor) -> list[int]:
     return [p_rowid for (p_rowid,) in c.fetchall()]
 
 
+def dot_record(*fields: str) -> str:
+    # A graphviz record label. Nested records flip between rows and columns.
+    return '{' + '|'.join(fields) + '}'
+
+
 def make_graph_node(c: sqlite3.Cursor, p_rowid: int, show_trust: bool = False) -> pd.Node:
     c.execute(
         """SELECT pub.keyid, pub.validity, pub.size, pub.algo, pub.ownertrust,
@@ -186,7 +191,7 @@ def make_graph_node(c: sqlite3.Cursor, p_rowid: int, show_trust: bool = False) -
     )
     (kid, val, size, algo, trust, uiddata) = c.fetchone()
 
-    nodename = 'a_%s' % p_rowid
+    nodename = f'a_{p_rowid}'
     anode = pd.Node(nodename)
     anode.set('shape', 'record')
     anode.set('style', 'rounded')
@@ -213,16 +218,13 @@ def make_graph_node(c: sqlite3.Cursor, p_rowid: int, show_trust: bool = False) -
     except IndexError:
         show = ''
 
-    if algo in ALGOS:
-        keyline = '{%s %s|%s}' % (ALGOS[algo], size, kid)
-    else:
-        keyline = '{%s}' % kid
+    keyline = dot_record(f'{ALGOS[algo]} {size}', kid) if algo in ALGOS else dot_record(kid)
 
+    who = f'{name}\n{show}'
     if show_trust:
-        anode.set('label', '{{%s\n%s|{val: %s|tru: %s}}|%s}' % (name, show, val, trust, keyline))
-    else:
-        anode.set('label', '{%s\n%s|%s}' % (name, show, keyline))
-    anode.set('URL', '%s.svg' % kid)
+        who = dot_record(who, dot_record(f'val: {val}', f'tru: {trust}'))
+    anode.set('label', dot_record(who, keyline))
+    anode.set('URL', f'{kid}.svg')
     return anode
 
 
@@ -257,7 +259,7 @@ def get_pubrow_id(c: sqlite3.Cursor, whatnot: str) -> int | None:
     # first, attempt to treat it as key id
     try:
         int(whatnot, 16)
-        as_keyid = '%%%s' % whatnot[-16:].upper()
+        as_keyid = f'%{whatnot[-16:].upper()}'
         c.execute("""SELECT DISTINCT rowid FROM pub WHERE keyid LIKE ?""", (as_keyid,))
         rows = c.fetchall()
         if len(rows) == 1:
@@ -272,7 +274,7 @@ def get_pubrow_id(c: sqlite3.Cursor, whatnot: str) -> int | None:
         pass
 
     # attempt to look up in uiddata
-    c.execute("""SELECT DISTINCT pubrowid FROM uid WHERE uiddata LIKE ? COLLATE NOCASE""", ('%%%s%%' % whatnot,))
+    c.execute("""SELECT DISTINCT pubrowid FROM uid WHERE uiddata LIKE ? COLLATE NOCASE""", (f'%{whatnot}%',))
     rows = c.fetchall()
     if len(rows) == 1:
         return rows[0][0]
