@@ -29,9 +29,10 @@ Example usage:
 
 graph-to-full.py
 ~~~~~~~~~~~~~~~~
-Very similar, but finds shortest paths to each fully-trusted key in your
-keyring. Handy for open-source projects where someone maintains a "web
-of trust."
+Very similar, but draws the shortest path from each fully-trusted key in
+your keyring to the target key. A path never goes through another
+fully-trusted key, because that key's own path already covers it. Handy
+for open-source projects where someone maintains a "web of trust."
 
 Example usage:
 

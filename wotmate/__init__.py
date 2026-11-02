@@ -9,7 +9,7 @@ import sqlite3
 import subprocess
 import sys
 from datetime import datetime
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Collection, Dict, List, Optional, Sequence, Set, Tuple
 
 import pydotplus.graphviz as pd  # type: ignore
 
@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 _all_signed_by_cache: Dict[int, List[int]] = dict()
 _all_sigs_cache: Dict[int, List[int]] = dict()
 _all_pub_uiddata_cache: Dict[int, Tuple[str, str]] = dict()
-_seenkeys: Set[int] = set()
 
 
 def get_pub_uid_by_pubrow(c: sqlite3.Cursor, p_rowid: int) -> Tuple[str, str]:
@@ -187,10 +186,11 @@ def get_all_signed(c: sqlite3.Cursor, p_rowid: int) -> List[int]:
 
 
 def get_all_full_trust(c: sqlite3.Cursor) -> List[int]:
-    c.execute("""SELECT DISTINCT pub.rowid
+    c.execute("""SELECT pub.rowid
                    FROM pub
-                  WHERE ownertrust IN ('u', 'f')""")
-    return c.fetchall()
+                  WHERE ownertrust IN ('u', 'f')
+               ORDER BY pub.rowid""")
+    return [p_rowid for (p_rowid,) in c.fetchall()]
 
 
 def make_graph_node(c: sqlite3.Cursor, p_rowid: int, show_trust: bool = False) -> pd.Node:
@@ -301,7 +301,15 @@ def get_pubrow_id(c: sqlite3.Cursor, whatnot: str) -> Optional[int]:
     return None
 
 
-def get_key_paths(c: sqlite3.Cursor, t_p_rowid: int, b_p_rowid: int, maxdepth: int = 5, maxpaths: int = 5):
+def get_key_paths(
+    c: sqlite3.Cursor,
+    t_p_rowid: int,
+    b_p_rowid: int,
+    maxdepth: int = 5,
+    maxpaths: int = 5,
+    avoid: Collection[int] = (),
+) -> List[List[int]]:
+    # Keys in avoid are never used as hops, only as the start or the end
 
     def gen_uniq_paths(t_p_rowid: int, b_p_rowid: int, maxdepth: int):
         logger.debug(f'search for {str(b_p_rowid) + " " + get_uiddata_by_pubrow(c, b_p_rowid)}')
@@ -310,7 +318,7 @@ def get_key_paths(c: sqlite3.Cursor, t_p_rowid: int, b_p_rowid: int, maxdepth: i
         prioq: List[Tuple[int, List[int]]] = [(0, [t_p_rowid])]
 
         found: Set[int] = set()
-        used_keys: Set[int] = set()
+        used_keys: Set[int] = set(avoid) - {b_p_rowid}
 
         while prioq:
             depth, path = prioq.pop(0)
@@ -369,3 +377,17 @@ def get_u_key(c: sqlite3.Cursor) -> Optional[int]:
         return p_rowid
     except (ValueError, TypeError):
         return None
+
+
+def get_full_trust_paths(c: sqlite3.Cursor, b_p_rowid: int, maxdepth: int = 5) -> List[List[int]]:
+    """Find the shortest path from each fully-trusted key to b_p_rowid."""
+    full_trust = get_all_full_trust(c)
+    paths: List[List[int]] = list()
+    for t_p_rowid in full_trust:
+        if t_p_rowid == b_p_rowid:
+            continue
+        # A path through another fully-trusted key adds nothing: that key's
+        # own path is shorter and is drawn anyway. Avoiding them sends each
+        # path along a different route.
+        paths += get_key_paths(c, t_p_rowid, b_p_rowid, maxdepth, maxpaths=1, avoid=full_trust)
+    return paths

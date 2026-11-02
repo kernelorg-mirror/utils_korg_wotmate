@@ -10,44 +10,6 @@ import pydotplus.graphviz as pd
 
 import wotmate
 
-
-def get_key_paths(c, b_p_rowid, maxdepth=5):
-    # Next, get rowids of all keys with full trust
-    f_p_rowids = wotmate.get_all_full_trust(c)
-
-    if not f_p_rowids:
-        logger.critical('No fully trusted keys found in the db')
-        sys.exit(1)
-
-    paths = []
-    ignorekeys = [item for sublist in f_p_rowids for item in sublist]
-    lookedat = 0
-
-    logger.info('Found %s fully trusted keys in the db' % len(f_p_rowids))
-    for (f_p_rowid,) in f_p_rowids:
-        lookedat += 1
-        logger.info('Trying "%s" (%s/%s)' % (wotmate.get_uiddata_by_pubrow(c, f_p_rowid), lookedat, len(f_p_rowids)))
-
-        path = wotmate.get_shortest_path(c, f_p_rowid, b_p_rowid, 0, maxdepth - 1, ignorekeys)
-
-        if path:
-            logger.info('`- found a path with %s members' % len(path))
-            paths.append(path)
-            # we want to find maximum paths, so we unset _seenkeys
-            wotmate._seenkeys = []
-            if len(path) > 2:
-                ignorekeys += path[1:-1]
-
-    if not paths:
-        logger.critical('No paths found to any fully trusted keys')
-        sys.exit(1)
-
-    culled = wotmate.cull_redundant_paths(paths)
-    logger.info('%s paths left after culling' % len(culled))
-
-    return culled
-
-
 if __name__ == '__main__':
     import argparse
 
@@ -84,7 +46,14 @@ if __name__ == '__main__':
     if to_rowid is None:
         sys.exit(1)
 
-    key_paths = get_key_paths(cursor, to_rowid, cmdargs.maxdepth)
+    if not wotmate.get_all_full_trust(cursor):
+        logger.critical('No fully trusted keys found in the db')
+        sys.exit(1)
+
+    key_paths = wotmate.get_full_trust_paths(cursor, to_rowid, cmdargs.maxdepth)
+    if not key_paths:
+        logger.critical('No paths found to any fully trusted keys')
+        sys.exit(1)
 
     graph = pd.Dot(
         graph_type='digraph',
