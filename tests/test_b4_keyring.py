@@ -10,16 +10,13 @@ soon as its address is no longer a valid UID on the key.
 from __future__ import annotations
 
 import os
-import shutil
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
 import wotmate
 
-from support import GPGBIN, REPO, Keyring
+from support import Keyring
 
 
 @pytest.mark.parametrize(
@@ -35,8 +32,6 @@ def test_b4_link_path(tmp_path: Path, addr: str, relpath: str) -> None:
     assert wotmate.b4_link_path(str(tmp_path), addr) == str(tmp_path / relpath)
 
 
-# export-keyring.py lints every new key with sq, even with --ignore-linter
-@pytest.mark.skipif(shutil.which('sq') is None, reason='sq is not installed')
 def test_export_keyring(keyring: Keyring, tmp_path: Path) -> None:
     me = keyring.add_key('Me <me@example.org>', trust='u')
     bob = keyring.add_key('Bob <bob@example.org>')
@@ -52,21 +47,8 @@ def test_export_keyring(keyring: Keyring, tmp_path: Path) -> None:
 
     def export() -> None:
         keyring.make_db()
-        cmd = [
-            sys.executable,
-            str(REPO / 'export-keyring.py'),
-            '--quiet',
-            '--gen-b4-keyring',
-            '--gpgbin',
-            GPGBIN,
-            '--gnupghome',
-            str(keyring.homedir),
-            '--dbfile',
-            str(keyring.dbfile),
-            '--outdir',
-            str(outdir),
-        ]
-        subprocess.run(cmd, check=True)
+        # The linter is not what this test is about, and sq may be missing
+        keyring.export_keyring(outdir, '--gen-b4-keyring', '--ignore-linter')
 
     def linked() -> dict[str, Path]:
         return {str(p.relative_to(links)): p.resolve() for p in links.rglob('default')}

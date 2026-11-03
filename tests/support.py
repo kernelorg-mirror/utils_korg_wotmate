@@ -105,6 +105,24 @@ class Keyring:
         subprocess.run(cmd, check=True)
         return sqlite3.connect(self.dbfile).cursor()
 
+    def export_keyring(self, outdir: Path, *args: str, env: dict[str, str] | None = None) -> None:
+        """Run export-keyring.py on the db that make_db() wrote."""
+        cmd = [
+            sys.executable,
+            str(REPO / 'export-keyring.py'),
+            '--quiet',
+            '--gpgbin',
+            GPGBIN,
+            '--gnupghome',
+            str(self.homedir),
+            '--dbfile',
+            str(self.dbfile),
+            '--outdir',
+            str(outdir),
+            *args,
+        ]
+        subprocess.run(cmd, check=True, env=env)
+
     def close(self) -> None:
         # Each homedir gets its own gpg-agent. Stop it, or every test leaves
         # one running.

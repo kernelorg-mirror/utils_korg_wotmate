@@ -206,13 +206,10 @@ if __name__ == '__main__':
             header = get_header(kid)
             keyexport = header + keydata + b'\n'
 
-            # Only do this for newly added keys
-            if not key_already_exists and not wotmate.lint(keydata):
-                if not cmdargs.ignore_linter:
-                    logger.info('Skipping %s due to bad linter results', kid)
-                    continue
-                else:
-                    logger.debug('%s: Ignore bad linter results', kid)
+            # Only lint newly added keys; ones already in the export stay in
+            if not key_already_exists and not cmdargs.ignore_linter and not wotmate.lint(keydata):
+                logger.info('Skipping %s due to bad linter results', kid)
+                continue
 
             with open(keyout, 'wb') as fout:
                 fout.write(keyexport)
